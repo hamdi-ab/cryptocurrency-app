@@ -33,7 +33,7 @@ class _SplashPageState extends State<SplashPage> {
         // Before running, ensure you have added 'assets/logo.png'
         // to your pubspec.yaml file and the file exists.
         child: Image(
-          image: AssetImage('assets/logo.png'),
+          image: AssetImage('assets/crypto_logo.png'),
           width: 150, // Adjust size as needed
         ),
       ),
