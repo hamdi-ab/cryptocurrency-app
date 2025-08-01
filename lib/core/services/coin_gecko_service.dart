@@ -9,6 +9,7 @@ class Coin {
   final String image;
   final double currentPrice;
   final double priceChangePercentage24h;
+  final double? marketCap;
 
   Coin({
     required this.id,
@@ -17,6 +18,7 @@ class Coin {
     required this.image,
     required this.currentPrice,
     required this.priceChangePercentage24h,
+    this.marketCap,
   });
 
   factory Coin.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,7 @@ class Coin {
       image: json['image'],
       currentPrice: (json['current_price'] as num).toDouble(),
       priceChangePercentage24h: (json['price_change_percentage_24h'] as num).toDouble(),
+      marketCap: (json['market_cap'] as num?)?.toDouble(),
     );
   }
 }
@@ -49,6 +52,26 @@ class CoinGeckoService {
       return data.map((json) => Coin.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load coins: \${response.statusCode}');
+    }
+  }
+
+  Future<Coin> fetchCoinDetail(String id) async {
+    final response = await http.get(Uri.parse('$_baseUrl/coins/$id'));
+
+    if (response.statusCode == 200) {
+      return Coin.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to load coin detail: \${response.statusCode}');
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchCoinMarketChart(String id, {int days = 7}) async {
+    final response = await http.get(Uri.parse('$_baseUrl/coins/$id/market_chart?vs_currency=usd&days=$days'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load coin market chart: \${response.statusCode}');
     }
   }
 }
