@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:go_router/go_router.dart';
 
-import 'package:cryptocurrency_tracker_app/core/services/coin_gecko_service.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import '../../core/services/coin_gecko_service.dart';
+import '../../models/coin.dart' as model; // Use a prefix for the model
 
 class WishlistPage extends StatefulWidget {
   const WishlistPage({super.key});
@@ -12,100 +14,162 @@ class WishlistPage extends StatefulWidget {
 }
 
 class _WishlistPageState extends State<WishlistPage> {
-  late Box<List<String>> _wishlistBox;
-  List<Coin> _wishlistCoins = [];
+  late final Box<bool> _wishlistBox;
+  List<model.Coin> _wishlistCoins = [];
   bool _isLoading = true;
-  String? _errorMessage;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _wishlistBox = Hive.box<List<String>>('wishlist');
-    _loadWishlistCoins();
+    _openBoxAndLoadWishlist();
   }
 
-  Future<void> _loadWishlistCoins() async {
+  Future<void> _openBoxAndLoadWishlist() async {
+    await Hive.openBox<bool>('wishlist');
+    _wishlistBox = Hive.box<bool>('wishlist');
+    _loadWishlist();
+    _wishlistBox.listenable().addListener(_loadWishlist);
+  }
+
+  Future<void> _loadWishlist() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
+      _error = null;
     });
+
     try {
-      final List<String> coinIds = _wishlistBox.get('coinIds', defaultValue: [])!;
-      List<Coin> fetchedCoins = [];
-      for (String id in coinIds) {
-        final coinDetail = await CoinGeckoService().fetchCoinDetail(id);
-        fetchedCoins.add(coinDetail);
+      final wishlistIds = _wishlistBox.keys.cast<String>().toList();
+      if (wishlistIds.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _wishlistCoins = [];
+            _isLoading = false;
+          });
+        }
+        return;
       }
-      setState(() {
-        _wishlistCoins = fetchedCoins;
-      });
+
+      // Correctly access the singleton instance and fetch details
+      final coinGeckoService = CoinGeckoService();
+      final futureCoins = wishlistIds
+          .map((id) => coinGeckoService.fetchCoinDetail(id))
+          .toList();
+      final resolvedCoins = await Future.wait(futureCoins);
+
+      if (mounted) {
+        setState(() {
+          // Cast the result to the prefixed Coin model
+          _wishlistCoins = resolvedCoins.cast<model.Coin>();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load wishlist: $e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = "Failed to load wishlist: ${e.toString()}";
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  void _removeFromWishlist(String coinId) {
-    List<String> wishlist = List.from(_wishlistBox.get('coinIds', defaultValue: [])!);
-    wishlist.remove(coinId);
-    _wishlistBox.put('coinIds', wishlist);
-    _loadWishlistCoins(); // Reload the list after removal
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Removed from Wishlist')),
-    );
+  Future<void> _removeFromWishlist(String coinId) async {
+    await _wishlistBox.delete(coinId);
+    setState(() {
+      _wishlistCoins.removeWhere((coin) => coin.id == coinId);
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Removed from wishlist!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _wishlistBox.listenable().removeListener(_loadWishlist);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Wishlist'),
+        title: const Text('Wishlist'),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_errorMessage!),
-                      ElevatedButton(
-                        onPressed: _loadWishlistCoins,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : _wishlistCoins.isEmpty
-                  ? const Center(child: Text('Your wishlist is empty.'))
-                  : ListView.builder(
-                      itemCount: _wishlistCoins.length,
-                      itemBuilder: (context, index) {
-                        final coin = _wishlistCoins[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: ListTile(
-                            leading: Image.network(coin.image, width: 40, height: 40),
-                            title: Text('${coin.name} (${coin.symbol.toUpperCase()})'),
-                            subtitle: Text(
-                              'Price: \$${coin.currentPrice.toStringAsFixed(2)}',
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () => _removeFromWishlist(coin.id),
-                            ),
-                            onTap: () {
-                              context.push('/details/${coin.id}');
-                            },
-                          ),
-                        );
-                      },
-                    ),
+      body: _buildContent(),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadWishlist,
+                child: const Text('Retry'),
+              )
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_wishlistCoins.isEmpty) {
+      return const Center(
+        child: Text(
+          'No favorites yet.',
+          style: TextStyle(fontSize: 18, color: Colors.grey),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _wishlistCoins.length,
+      itemBuilder: (context, index) {
+        final coin = _wishlistCoins[index];
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundImage: NetworkImage(coin.image),
+            backgroundColor: Colors.transparent,
+          ),
+          title: Text(coin.name),
+          subtitle: Text(coin.symbol.toUpperCase()),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '\$${coin.currentPrice.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 16),
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => _removeFromWishlist(coin.id),
+              ),
+            ],
+          ),
+          onTap: () => context.push('/details/${coin.id}'),
+        );
+      },
     );
   }
 }
