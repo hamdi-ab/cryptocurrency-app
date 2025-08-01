@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:cryptocurrency_tracker_app/routes/app_router.dart';
 import 'package:cryptocurrency_tracker_app/models/coin_adapter.dart';
+import 'package:cryptocurrency_tracker_app/features/home/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        // Add your providers here
+        ChangeNotifierProvider(create: (_) => CoinListProvider()),
       ],
       child: const MyApp(),
     ),
