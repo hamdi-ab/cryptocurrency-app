@@ -1,8 +1,16 @@
-import 'package:flutter/material.dart';
+import 'package:cryptocurrency_tracker_app/core/error/exceptions.dart';
+import 'package:cryptocurrency_tracker_app/core/services/coin_gecko_service.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'package:cryptocurrency_tracker_app/core/services/coin_gecko_service.dart';
+// Helper class to hold the combined results of our API calls
+class CoinDetailBundle {
+  final Coin coin;
+  final Map<String, dynamic> marketChart;
+
+  CoinDetailBundle({required this.coin, required this.marketChart});
+}
 
 class DetailsPage extends StatefulWidget {
   final String coinId;
@@ -14,7 +22,7 @@ class DetailsPage extends StatefulWidget {
 }
 
 class _DetailsPageState extends State<DetailsPage> {
-  late Future<Map<String, dynamic>> _coinDetailsFuture;
+  late Future<CoinDetailBundle> _detailsFuture;
   late Box<List<String>> _wishlistBox;
 
   @override
@@ -25,35 +33,50 @@ class _DetailsPageState extends State<DetailsPage> {
   }
 
   void _fetchData() {
-    _coinDetailsFuture = Future.wait([
+    setState(() {
+      _detailsFuture = _fetchAllDetails();
+    });
+  }
+
+  Future<CoinDetailBundle> _fetchAllDetails() async {
+    // No need for a try-catch block here, FutureBuilder handles it.
+    final results = await Future.wait([
       CoinGeckoService().fetchCoinDetail(widget.coinId),
       CoinGeckoService().fetchCoinMarketChart(widget.coinId, days: 7),
-    ]).then((results) => {
-          'coinDetail': results[0],
-          'priceHistory': results[1],
-        });
+    ]);
+
+    return CoinDetailBundle(
+      coin: results[0] as Coin,
+      marketChart: results[1] as Map<String, dynamic>,
+    );
   }
 
   bool _isInWishlist(String coinId) {
-    final List<String> wishlist = _wishlistBox.get('coinIds', defaultValue: [])!;
-    return wishlist.contains(coinId);
+    final wishlistIds = _wishlistBox.get('coinIds', defaultValue: [])!;
+    return wishlistIds.contains(coinId);
   }
 
   void _toggleWishlist(String coinId) {
-    List<String> wishlist = List.from(_wishlistBox.get('coinIds', defaultValue: [])!);
-    if (wishlist.contains(coinId)) {
-      wishlist.remove(coinId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Removed from Wishlist')),
-      );
+    final List<String> wishlistIds = List.from(
+      _wishlistBox.get('coinIds', defaultValue: [])!,
+    );
+
+    if (wishlistIds.contains(coinId)) {
+      wishlistIds.remove(coinId);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Removed from Wishlist')));
     } else {
-      wishlist.add(coinId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Added to Wishlist')),
-      );
+      wishlistIds.add(coinId);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Added to Wishlist')));
     }
-    _wishlistBox.put('coinIds', wishlist);
-    setState(() {}); // Rebuild to update wishlist icon
+    _wishlistBox.put('coinIds', wishlistIds);
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -62,105 +85,136 @@ class _DetailsPageState extends State<DetailsPage> {
       appBar: AppBar(
         title: const Text('Coin Details'),
         actions: [
-          FutureBuilder<Map<String, dynamic>>(
-            future: _coinDetailsFuture,
+          FutureBuilder<CoinDetailBundle>(
+            future: _detailsFuture,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-                final coinDetail = snapshot.data!['coinDetail'];
+              if (snapshot.hasData) {
                 return IconButton(
                   icon: Icon(
-                    _isInWishlist(coinDetail.id) ? Icons.favorite : Icons.favorite_border,
+                    _isInWishlist(widget.coinId)
+                        ? Icons.favorite
+                        : Icons.favorite_border,
                   ),
-                  onPressed: () => _toggleWishlist(coinDetail.id),
+                  onPressed: () => _toggleWishlist(widget.coinId),
                 );
               }
-              return Container();
+              return const SizedBox.shrink();
             },
           ),
         ],
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _coinDetailsFuture,
+      body: FutureBuilder<CoinDetailBundle>(
+        future: _detailsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Error: ${snapshot.error}'),
-                  ElevatedButton(
-                    onPressed: _fetchData,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          } else if (snapshot.hasData) {
-            final coinDetail = snapshot.data!['coinDetail'];
-            final List<dynamic> priceHistory = snapshot.data!['priceHistory']['prices'];
-
-            List<FlSpot> spots = priceHistory.map((point) {
-              return FlSpot(point[0].toDouble(), point[1].toDouble());
-            }).toList();
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${coinDetail.name} (${coinDetail.symbol.toUpperCase()})',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Current Price: \$${coinDetail.currentPrice.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Market Cap: \$${coinDetail.marketCap?.toStringAsFixed(2) ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '7-Day Price History',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 200,
-                    child: LineChart(
-                      LineChartData(
-                        gridData: const FlGridData(show: false),
-                        titlesData: const FlTitlesData(show: false),
-                        borderData: FlBorderData(
-                          show: true,
-                          border: Border.all(color: const Color(0xff37434d), width: 1),
-                        ),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: spots,
-                            isCurved: true,
-                            color: Colors.blue,
-                            barWidth: 2,
-                            isStrokeCapRound: true,
-                            dotData: const FlDotData(show: false),
-                            belowBarData: BarAreaData(show: false),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            return const Center(child: Text('No data available.'));
           }
+
+          if (snapshot.hasError) {
+            // Handle custom exceptions
+            if (snapshot.error is ApiException) {
+              return _buildErrorWidget(snapshot.error.toString());
+            } else {
+              // Generic error for unexpected issues
+              return _buildErrorWidget('An unexpected error occurred.');
+            }
+          }
+
+          if (!snapshot.hasData) {
+            return _buildErrorWidget('No data available.');
+          }
+
+          final coin = snapshot.data!.coin;
+          final marketChart = snapshot.data!.marketChart;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${coin.name} (${coin.symbol.toUpperCase()})',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Current Price: \${coin.currentPrice.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Market Cap: \${coin.marketCap?.toStringAsFixed(2) ?? '
+                  '}',
+                  style: const TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  '7-Day Price History',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                _buildPriceChart(marketChart),
+              ],
+            ),
+          );
         },
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: _fetchData, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceChart(Map<String, dynamic> marketChart) {
+    final List<dynamic>? priceHistory = marketChart['prices'];
+
+    if (priceHistory == null || priceHistory.isEmpty) {
+      return const Center(
+        child: Text('Price history is currently unavailable.'),
+      );
+    }
+
+    final List<FlSpot> spots =
+        priceHistory.map((point) {
+          return FlSpot(point[0].toDouble(), point[1].toDouble());
+        }).toList();
+
+    return SizedBox(
+      height: 200,
+      child: LineChart(
+        LineChartData(
+          gridData: const FlGridData(show: false),
+          titlesData: const FlTitlesData(show: false),
+          borderData: FlBorderData(show: true),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: Colors.blue,
+              barWidth: 2,
+              isStrokeCapRound: true,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(show: false),
+            ),
+          ],
+        ),
       ),
     );
   }

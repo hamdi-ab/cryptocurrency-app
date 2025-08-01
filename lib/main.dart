@@ -16,6 +16,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   await Hive.initFlutter();
+  await Hive.openBox<List<String>>('wishlist');
 
   // Register Hive Adapters
   // Hive.registerAdapter(CoinAdapter()); // Uncomment and implement CoinAdapter
