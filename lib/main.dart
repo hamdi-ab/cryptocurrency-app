@@ -1,4 +1,5 @@
 
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -8,6 +9,8 @@ import 'package:cryptocurrency_tracker_app/routes/app_router.dart';
 import 'package:cryptocurrency_tracker_app/models/coin_adapter.dart';
 import 'package:cryptocurrency_tracker_app/features/home/home_page.dart';
 import 'package:cryptocurrency_tracker_app/core/theme/theme_provider.dart';
+
+final ValueNotifier<bool> isLoadingNotifier = ValueNotifier(false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +39,19 @@ class MyApp extends StatelessWidget {
     final AppRouter appRouter = AppRouter();
     final themeProvider = Provider.of<ThemeProvider>(context);
 
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      debugPrint(details.toString());
+      return const Material(
+        child: Center(
+          child: Text(
+            'Something went wrong!\nPlease try again later.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.red, fontSize: 16),
+          ),
+        ),
+      );
+    };
+
     return MaterialApp.router(
       title: 'Cryptocurrency Tracker',
       theme: ThemeData(
@@ -48,6 +64,27 @@ class MyApp extends StatelessWidget {
       ),
       themeMode: themeProvider.mode,
       routerConfig: appRouter.router,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            child!,
+            ValueListenableBuilder<bool>(
+              valueListenable: isLoadingNotifier,
+              builder: (context, isLoading, _) {
+                if (isLoading) {
+                  return const Material(
+                    color: Colors.black54,
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
