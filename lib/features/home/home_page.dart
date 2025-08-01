@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:cryptocurrency_tracker_app/core/services/coin_gecko_service.dart';
+import 'package:cryptocurrency_tracker_app/core/theme/theme_provider.dart';
 
 class CoinListProvider extends ChangeNotifier {
   final CoinGeckoService _coinGeckoService = CoinGeckoService();
@@ -100,9 +101,19 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cryptocurrency Tracker'),
+        actions: [
+          IconButton(
+            icon: Icon(themeProvider.mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: () {
+              context.read<ThemeProvider>().toggleTheme();
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
