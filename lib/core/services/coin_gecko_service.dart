@@ -28,7 +28,8 @@ class Coin {
       name: json['name'],
       image: json['image'],
       currentPrice: (json['current_price'] as num).toDouble(),
-      priceChangePercentage24h: (json['price_change_percentage_24h'] as num).toDouble(),
+      priceChangePercentage24h:
+          (json['price_change_percentage_24h'] as num).toDouble(),
       marketCap: (json['market_cap'] as num?)?.toDouble(),
     );
   }
@@ -44,14 +45,16 @@ class CoinGeckoService {
 
   Future<List<Coin>> fetchCoins({int page = 1}) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=\$page'),
+      Uri.parse(
+        '$_baseUrl/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=$page',
+      ),
     );
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
       return data.map((json) => Coin.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load coins: \${response.statusCode}');
+      throw Exception('Failed to load coins: ${response.statusCode}');
     }
   }
 
@@ -61,17 +64,24 @@ class CoinGeckoService {
     if (response.statusCode == 200) {
       return Coin.fromJson(json.decode(response.body));
     } else {
-      throw Exception('Failed to load coin detail: \${response.statusCode}');
+      throw Exception('Failed to load coin detail: ${response.statusCode}');
     }
   }
 
-  Future<Map<String, dynamic>> fetchCoinMarketChart(String id, {int days = 7}) async {
-    final response = await http.get(Uri.parse('$_baseUrl/coins/$id/market_chart?vs_currency=usd&days=$days'));
+  Future<Map<String, dynamic>> fetchCoinMarketChart(
+    String id, {
+    int days = 7,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/coins/$id/market_chart?vs_currency=usd&days=$days'),
+    );
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
     } else {
-      throw Exception('Failed to load coin market chart: \${response.statusCode}');
+      throw Exception(
+        'Failed to load coin market chart: ${response.statusCode}',
+      );
     }
   }
 }
