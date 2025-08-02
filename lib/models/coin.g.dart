@@ -23,13 +23,15 @@ class CoinAdapter extends TypeAdapter<Coin> {
       image: fields[3] as String,
       currentPrice: fields[4] as double,
       priceChangePercentage24h: fields[5] as double,
+      marketCap: fields[6] as double?,
+      totalVolume: fields[7] as double?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Coin obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +43,11 @@ class CoinAdapter extends TypeAdapter<Coin> {
       ..writeByte(4)
       ..write(obj.currentPrice)
       ..writeByte(5)
-      ..write(obj.priceChangePercentage24h);
+      ..write(obj.priceChangePercentage24h)
+      ..writeByte(6)
+      ..write(obj.marketCap)
+      ..writeByte(7)
+      ..write(obj.totalVolume);
   }
 
   @override

@@ -22,6 +22,12 @@ class Coin extends HiveObject {
   @HiveField(5)
   final double priceChangePercentage24h;
 
+  @HiveField(6)
+  final double? marketCap;
+
+  @HiveField(7)
+  final double? totalVolume;
+
   Coin({
     required this.id,
     required this.symbol,
@@ -29,6 +35,8 @@ class Coin extends HiveObject {
     required this.image,
     required this.currentPrice,
     required this.priceChangePercentage24h,
+    this.marketCap,
+    this.totalVolume,
   });
 
   factory Coin.fromJson(Map<String, dynamic> json) {
@@ -39,6 +47,8 @@ class Coin extends HiveObject {
       image: json['image'],
       currentPrice: (json['current_price'] as num).toDouble(),
       priceChangePercentage24h: (json['price_change_percentage_24h'] as num).toDouble(),
+      marketCap: (json['market_cap'] as num?)?.toDouble(),
+      totalVolume: (json['total_volume'] as num?)?.toDouble(),
     );
   }
 }

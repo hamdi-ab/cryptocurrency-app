@@ -29,7 +29,9 @@ class CoinListProvider extends ChangeNotifier {
         _hasMore = false;
       } else {
         _allCoins.addAll(newCoins);
-        _filteredCoins = List.from(_allCoins); // Initialize filteredCoins with allCoins
+        _filteredCoins = List.from(
+          _allCoins,
+        ); // Initialize filteredCoins with allCoins
         _page++;
       }
     } catch (e) {
@@ -45,11 +47,14 @@ class CoinListProvider extends ChangeNotifier {
     if (query.isEmpty) {
       _filteredCoins = List.from(_allCoins);
     } else {
-      _filteredCoins = _allCoins
-          .where((coin) =>
-              coin.name.toLowerCase().contains(query.toLowerCase()) ||
-              coin.symbol.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+      _filteredCoins =
+          _allCoins
+              .where(
+                (coin) =>
+                    coin.name.toLowerCase().contains(query.toLowerCase()) ||
+                    coin.symbol.toLowerCase().contains(query.toLowerCase()),
+              )
+              .toList();
     }
     notifyListeners();
   }
@@ -87,8 +92,10 @@ class _HomePageState extends State<HomePage> {
     });
 
     _searchController.addListener(() {
-      Provider.of<CoinListProvider>(context, listen: false)
-          .filterCoins(_searchController.text);
+      Provider.of<CoinListProvider>(
+        context,
+        listen: false,
+      ).filterCoins(_searchController.text);
     });
   }
 
@@ -108,7 +115,11 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Cryptocurrency Tracker'),
         actions: [
           IconButton(
-            icon: Icon(themeProvider.mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
+            icon: Icon(
+              themeProvider.mode == ThemeMode.dark
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
             onPressed: () {
               context.read<ThemeProvider>().toggleTheme();
             },
@@ -137,14 +148,17 @@ class _HomePageState extends State<HomePage> {
           Expanded(
             child: Consumer<CoinListProvider>(
               builder: (context, coinListProvider, child) {
-                if (coinListProvider.isLoading && coinListProvider.allCoins.isEmpty) {
+                if (coinListProvider.isLoading &&
+                    coinListProvider.allCoins.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
-                } else if (coinListProvider.filteredCoins.isEmpty && !coinListProvider.isLoading) {
+                } else if (coinListProvider.filteredCoins.isEmpty &&
+                    !coinListProvider.isLoading) {
                   return const Center(child: Text('No coins found.'));
                 } else {
                   return ListView.builder(
                     controller: _scrollController,
-                    itemCount: coinListProvider.filteredCoins.length +
+                    itemCount:
+                        coinListProvider.filteredCoins.length +
                         (coinListProvider.isLoading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == coinListProvider.filteredCoins.length) {
@@ -152,12 +166,21 @@ class _HomePageState extends State<HomePage> {
                       }
                       final coin = coinListProvider.filteredCoins[index];
                       return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         child: ListTile(
-                          leading: Image.network(coin.image, width: 40, height: 40),
-                          title: Text('${coin.name} (${coin.symbol.toUpperCase()})'),
+                          leading: Image.network(
+                            coin.image,
+                            width: 40,
+                            height: 40,
+                          ),
+                          title: Text(
+                            '${coin.name} (${coin.symbol.toUpperCase()})',
+                          ),
                           subtitle: Text(
-                            'Price: \${coin.currentPrice.toStringAsFixed(2)}',
+                            'Price: ${coin.currentPrice.toStringAsFixed(2)}',
                           ),
                           trailing: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -166,9 +189,10 @@ class _HomePageState extends State<HomePage> {
                               Text(
                                 '${coin.priceChangePercentage24h.toStringAsFixed(2)}%',
                                 style: TextStyle(
-                                  color: coin.priceChangePercentage24h >= 0
-                                      ? Colors.green
-                                      : Colors.red,
+                                  color:
+                                      coin.priceChangePercentage24h >= 0
+                                          ? Colors.green
+                                          : Colors.red,
                                 ),
                               ),
                             ],

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io'; // For SocketException
+import 'package:intl/intl.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -14,6 +15,7 @@ class Coin {
   final double currentPrice;
   final double priceChangePercentage24h;
   final double? marketCap;
+  final double? totalVolume;
 
   Coin({
     required this.id,
@@ -23,19 +25,21 @@ class Coin {
     required this.currentPrice,
     required this.priceChangePercentage24h,
     this.marketCap,
+    this.totalVolume,
   });
 
   // For parsing the list from /coins/markets
   factory Coin.fromJson(Map<String, dynamic> json) {
     return Coin(
-      id: json['id'],
-      symbol: json['symbol'],
-      name: json['name'],
-      image: json['image'],
-      currentPrice: (json['current_price'] as num).toDouble(),
+      id: json['id'] ?? '',
+      symbol: json['symbol'] ?? '',
+      name: json['name'] ?? '',
+      image: json['image'] ?? '',
+      currentPrice: (json['current_price'] as num?)?.toDouble() ?? 0.0,
       priceChangePercentage24h:
-          (json['price_change_percentage_24h'] as num).toDouble(),
+          (json['price_change_percentage_24h'] as num?)?.toDouble() ?? 0.0,
       marketCap: (json['market_cap'] as num?)?.toDouble(),
+      totalVolume: (json['total_volume'] as num?)?.toDouble(),
     );
   }
 
@@ -43,14 +47,15 @@ class Coin {
   factory Coin.fromDetailJson(Map<String, dynamic> json) {
     final marketData = json['market_data'];
     return Coin(
-      id: json['id'],
-      symbol: json['symbol'],
-      name: json['name'],
-      image: json['image']['large'], // Image is nested
-      currentPrice: (marketData['current_price']['usd'] as num).toDouble(),
+      id: json['id'] ?? '',
+      symbol: json['symbol'] ?? '',
+      name: json['name'] ?? '',
+      image: json['image']?['large'] ?? '', // Image is nested
+      currentPrice: (marketData['current_price']?['usd'] as num?)?.toDouble() ?? 0.0,
       priceChangePercentage24h:
-          (marketData['price_change_percentage_24h'] as num).toDouble(),
-      marketCap: (marketData['market_cap']['usd'] as num?)?.toDouble(),
+          (marketData['price_change_percentage_24h'] as num?)?.toDouble() ?? 0.0,
+      marketCap: (marketData['market_cap']?['usd'] as num?)?.toDouble(),
+      totalVolume: (marketData['total_volume']?['usd'] as num?)?.toDouble(),
     );
   }
 }

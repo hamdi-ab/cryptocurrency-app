@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -66,6 +64,7 @@ class _MyAppState extends State<MyApp> {
     };
 
     return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
       title: 'Cryptocurrency Tracker',
       theme: ThemeData(
         brightness: Brightness.light,
@@ -87,9 +86,7 @@ class _MyAppState extends State<MyApp> {
                 if (isLoading) {
                   return const Material(
                     color: Colors.black54,
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: Center(child: CircularProgressIndicator()),
                   );
                 }
                 return const SizedBox.shrink();
