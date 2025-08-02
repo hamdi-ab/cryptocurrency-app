@@ -54,33 +54,25 @@ class _DetailsPageState extends State<DetailsPage> {
   }
 
   bool _isInWishlist(String coinId) {
-    final wishlistIds =
-        _wishlistBox
-            .get('coinIds', defaultValue: [])
-            ?.cast<String>()
-            .toList() ??
-        [];
+    final dynamic rawWishlist = _wishlistBox.get('coinIds', defaultValue: []);
+    final List<String> wishlistIds = List<String>.from(rawWishlist as List);
     return wishlistIds.contains(coinId);
   }
 
   void _toggleWishlist(String coinId) {
-    final List<String> wishlistIds =
-        _wishlistBox
-            .get('coinIds', defaultValue: [])
-            ?.cast<String>()
-            .toList() ??
-        [];
+    final dynamic rawWishlist = _wishlistBox.get('coinIds', defaultValue: []);
+    final List<String> wishlistIds = List<String>.from(rawWishlist as List);
 
     if (wishlistIds.contains(coinId)) {
       wishlistIds.remove(coinId);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Removed from Wishlist')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Removed from Wishlist')),
+      );
     } else {
       wishlistIds.add(coinId);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Added to Wishlist')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Added to Wishlist')),
+      );
     }
     _wishlistBox.put('coinIds', wishlistIds);
 

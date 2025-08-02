@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../core/services/coin_gecko_service.dart';
-import '../../models/coin.dart' as model;
 
 class WishlistPage extends StatefulWidget {
   const WishlistPage({super.key});
@@ -14,17 +13,15 @@ class WishlistPage extends StatefulWidget {
 
 class _WishlistPageState extends State<WishlistPage> {
   late final Box<List<String>> _wishlistBox;
-  List<model.Coin> _wishlistCoins = [];
+  List<Coin> _wishlistCoins = [];
   bool _isLoading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    // The box is already opened in main.dart, so we just get the instance.
     _wishlistBox = Hive.box<List<String>>('wishlist');
     _loadWishlist();
-    // Listen for changes in the box to rebuild the UI.
     _wishlistBox.listenable().addListener(_loadWishlist);
   }
 
@@ -36,8 +33,9 @@ class _WishlistPageState extends State<WishlistPage> {
     });
 
     try {
-      // Get the list of coin IDs from the box.
-      final wishlistIds = _wishlistBox.get('coinIds', defaultValue: [])!;
+      final dynamic rawWishlist = _wishlistBox.get('coinIds', defaultValue: []);
+      final List<String> wishlistIds = List<String>.from(rawWishlist as List);
+
       if (wishlistIds.isEmpty) {
         if (mounted) {
           setState(() {
@@ -49,14 +47,13 @@ class _WishlistPageState extends State<WishlistPage> {
       }
 
       final coinGeckoService = CoinGeckoService();
-      final futureCoins = wishlistIds
-          .map((id) => coinGeckoService.fetchCoinDetail(id))
-          .toList();
+      final futureCoins =
+          wishlistIds.map((id) => coinGeckoService.fetchCoinDetail(id)).toList();
       final resolvedCoins = await Future.wait(futureCoins);
 
       if (mounted) {
         setState(() {
-          _wishlistCoins = resolvedCoins.cast<model.Coin>();
+          _wishlistCoins = resolvedCoins;
           _isLoading = false;
         });
       }
@@ -71,11 +68,10 @@ class _WishlistPageState extends State<WishlistPage> {
   }
 
   Future<void> _removeFromWishlist(String coinId) async {
-    // Get the current list, remove the coin ID, and save it back to the box.
-    final List<String> wishlist = List.from(_wishlistBox.get('coinIds', defaultValue: [])!);
-    wishlist.remove(coinId);
-    await _wishlistBox.put('coinIds', wishlist);
-    // The listener will automatically call _loadWishlist to update the UI.
+    final dynamic rawWishlist = _wishlistBox.get('coinIds', defaultValue: []);
+    final List<String> wishlistIds = List<String>.from(rawWishlist as List);
+    wishlistIds.remove(coinId);
+    await _wishlistBox.put('coinIds', wishlistIds);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -89,7 +85,6 @@ class _WishlistPageState extends State<WishlistPage> {
 
   @override
   void dispose() {
-    // Remove the listener when the widget is disposed.
     _wishlistBox.listenable().removeListener(_loadWishlist);
     super.dispose();
   }
