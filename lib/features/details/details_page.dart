@@ -1,8 +1,10 @@
 import 'package:cryptocurrency_tracker_app/core/error/exceptions.dart';
 import 'package:cryptocurrency_tracker_app/core/services/coin_gecko_service.dart';
+import 'package:cryptocurrency_tracker_app/core/theme/theme_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
 
 // Helper class to hold the combined results of our API calls
 class CoinDetailBundle {
@@ -81,10 +83,19 @@ class _DetailsPageState extends State<DetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Coin Details'),
         actions: [
+          IconButton(
+            icon: Icon(themeProvider.mode == ThemeMode.dark
+                ? Icons.light_mode
+                : Icons.dark_mode),
+            onPressed: () {
+              context.read<ThemeProvider>().toggleTheme();
+            },
+          ),
           FutureBuilder<CoinDetailBundle>(
             future: _detailsFuture,
             builder: (context, snapshot) {

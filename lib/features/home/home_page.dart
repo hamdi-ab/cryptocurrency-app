@@ -113,6 +113,12 @@ class _HomePageState extends State<HomePage> {
               context.read<ThemeProvider>().toggleTheme();
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.favorite),
+            onPressed: () {
+              context.push('/wishlist');
+            },
+          ),
         ],
       ),
       body: Column(
@@ -151,7 +157,7 @@ class _HomePageState extends State<HomePage> {
                           leading: Image.network(coin.image, width: 40, height: 40),
                           title: Text('${coin.name} (${coin.symbol.toUpperCase()})'),
                           subtitle: Text(
-                            'Price: \$${coin.currentPrice.toStringAsFixed(2)}',
+                            'Price: \${coin.currentPrice.toStringAsFixed(2)}',
                           ),
                           trailing: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
