@@ -282,6 +282,9 @@ class _DetailsPageState extends State<DetailsPage> {
           return FlSpot(point[0].toDouble(), point[1].toDouble());
         }).toList();
 
+    // Determine the color based on price change
+    final Color lineColor = (spots.last.y >= spots.first.y) ? Colors.green : Colors.red;
+
     return SizedBox(
       height: 250,
       child: Card(
@@ -354,15 +357,13 @@ class _DetailsPageState extends State<DetailsPage> {
                 LineChartBarData(
                   spots: spots,
                   isCurved: true,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: lineColor,
                   barWidth: 3,
                   isStrokeCapRound: true,
                   dotData: const FlDotData(show: false),
                   belowBarData: BarAreaData(
                     show: true,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.2),
+                    color: lineColor.withOpacity(0.2),
                   ),
                 ),
               ],
