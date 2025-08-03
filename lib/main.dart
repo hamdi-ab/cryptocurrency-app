@@ -65,7 +65,7 @@ class _MyAppState extends State<MyApp> {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Cryptocurrency Tracker',
+      title: 'Crypto Tracker',
       theme: ThemeData(
         brightness: Brightness.light,
         primarySwatch: Colors.blue,
